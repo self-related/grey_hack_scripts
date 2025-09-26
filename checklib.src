@@ -1,0 +1,59 @@
+version = "0.1"
+usageMsg = "
+Usage: 
+	checklib libname.so     - check lib version in /lib/
+	
+	Options:
+		-p, --path <path>   - check lib version in provided <path>
+		-v, --version       - print version
+        -help              - print this message
+
+	Examples:
+		checklib kernel_module.so
+		checklib -p my_folder/kernel_module.so 
+";
+
+
+initMetaxploit = function() 
+	metaxploitProgramPath = parent_path(program_path()) + "/metaxploit.so"
+	metaxploitCurPath = get_abs_path("./metaxploit.so")
+	metaxploitRootPath = "/lib/metaxploit.so"
+	
+	for path in [metaxploitProgramPath, metaxploitCurPath, metaxploitRootPath]
+		lib = include_lib(path)
+		if (typeof(lib) == "MetaxploitLib") then
+			return lib; // MetaxploitLib found
+		end if
+	end for
+
+	exit("\nERROR: metaxploit.so library NOT found!\nPaths checked:\n   " + metaxploitProgramPath + "\n   " + metaxploitCurPath + "\n   " + metaxploitRootPath + "\n");
+end function
+
+metaxploit = initMetaxploit()
+
+if (params.len == 0 or params[0] == "--help") then
+	exit(usageMsg)
+end if
+
+if (params[0] == "-v" or params[0] == "--version") then
+	exit("\nversion: " + version + "\n")
+end if
+
+libPath = null;
+if (params[0] == "--path" or params[0] == "-p") then
+	if (params.len < 2) then 
+		print("\nPath not provided")
+		exit(usageMsg)
+	else
+		libPath = get_abs_path(params[1])
+	end if
+else
+	libPath = "/lib/" + params[0]
+end if
+
+
+lib = metaxploit.load(libPath)
+print("\nname: " + lib.lib_name)
+print("version: " + lib.version)
+print()
+
