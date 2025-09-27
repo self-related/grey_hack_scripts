@@ -3,6 +3,7 @@
 
 version = "0.2"
 usageMsg = "
+Dependencies: metaxploit.so
 Usage: 
 	checklib libname.so     - check lib version in /lib/
 	
@@ -12,7 +13,7 @@ Usage:
 		-v, --version       - print version
         --help              - print this message
 
-	Examples:
+	Usage examples:
 		checklib kernel_module.so
 		checklib -a
 		checklib -p my_folder/kernel_module.so
@@ -135,14 +136,16 @@ if params.len == 1 and (params[0] == "-a" or params[0] == "--all") then
 		
 		// print errors
 		if (file_created == "The file already exists") then
-			print("\nchecklib.log exists and will be overwritten")
+			print("checklib.log exists and will be overwritten")
 		else if (file_created != 1) then
 			print(file_created)
 		end if
 	
 		log_file = computer.File("checklib.log")
 		log_file.set_content(result)
-		print("\nLog saved in " + log_file.path + "\n")
+		print("Log saved in " + log_file.path)
+	else
+		print("No log saved")
 	end if
 	
 else if (libPath != null) then
