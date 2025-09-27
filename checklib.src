@@ -117,11 +117,33 @@ end if
 if params.len == 1 and (params[0] == "-a" or params[0] == "--all") then
 	allLibs = getAllLibs()
 	
-	for lib in allLibs 
-		result = result + "\n" + lib.lib_name + " " + lib.version
+	for lib in allLibs
+			// result = result + "\n" + lib.lib_name + " " + lib.version 
+			// escape characters don't work in UI text editor, but below works fine
+		result = result + 
+"
+" 		+ lib.lib_name + " " + lib.version
 	end for
 
 	print(result)
+	
+	// save logs
+	input = user_input("\nSave results in checklib.log? [y/N]: ")
+	if (input == "y" or input == "Y") then
+		computer = get_shell().host_computer()
+		file_created = computer.touch(current_path, "checklib.log")
+		
+		// print errors
+		if (file_created == "The file already exists") then
+			print("\nchecklib.log exists and will be overwritten")
+		else if (file_created != 1) then
+			print(file_created)
+		end if
+	
+		log_file = computer.File("checklib.log")
+		log_file.set_content(result)
+		print("\nLog saved in " + log_file.path + "\n")
+	end if
 	
 else if (libPath != null) then
 	lib = getLib(libPath)
