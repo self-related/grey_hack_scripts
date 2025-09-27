@@ -1,4 +1,7 @@
-version = "0.1"
+
+// consts
+
+version = "0.2"
 usageMsg = "
 Usage: 
 	checklib libname.so     - check lib version in /lib/
@@ -13,6 +16,9 @@ Usage:
 		checklib -p my_folder/kernel_module.so 
 ";
 
+
+
+// functions
 
 initMetaxploit = function() 
 	metaxploitProgramPath = parent_path(program_path()) + "/metaxploit.so"
@@ -29,31 +35,105 @@ initMetaxploit = function()
 	exit("\nERROR: metaxploit.so library NOT found!\nPaths checked:\n   " + metaxploitProgramPath + "\n   " + metaxploitCurPath + "\n   " + metaxploitRootPath + "\n");
 end function
 
-metaxploit = initMetaxploit()
 
+getLib = function(path)
+	metaxploit = initMetaxploit()
+	lib = metaxploit.load(path)
+	
+	if (typeof(lib) == "MetaLib") then
+		return lib
+	else
+		return null
+	end if
+
+end function
+
+
+getAllLibs = function(path = "/lib")
+	allLibsDir = get_shell().host_computer().File(path)
+	allLibs = []
+	
+	// throw error
+	if (allLibsDir == null or allLibsDir.is_folder == false) then
+		exit("no /lib folder on this machine")
+	end if
+	
+	files = allLibsDir.get_files()
+	
+	for file in files
+		lib = getLib(file.path)
+		
+		if (lib != null) then
+			allLibs.push(lib)
+		end if
+	
+	end for
+
+	if (allLibs.len == 0) then
+		exit("No libs found")
+	end if
+	
+	return allLibs
+end function
+
+
+
+// start script
+
+libPath = null;
+result = ""
+
+
+// handle --help flag
 if (params.len == 0 or params[0] == "--help") then
 	exit(usageMsg)
 end if
 
+
+// handle --version flag
 if (params[0] == "-v" or params[0] == "--version") then
 	exit("\nversion: " + version + "\n")
 end if
 
-libPath = null;
+
+// handle --path flag and init libPath
 if (params[0] == "--path" or params[0] == "-p") then
+	
 	if (params.len < 2) then 
 		print("\nPath not provided")
 		exit(usageMsg)
 	else
 		libPath = get_abs_path(params[1])
 	end if
-else
+
+else if (params.len == 1) then
 	libPath = "/lib/" + params[0]
 end if
 
 
-lib = metaxploit.load(libPath)
-print("\nname: " + lib.lib_name)
-print("version: " + lib.version)
-print()
+// handle -a flag
+if params.len == 1 and (params[0] == "-a" or params[0] == "--all") then
+	allLibs = getAllLibs()
+	
+	for lib in allLibs 
+		result = result + "\n" + lib.lib_name + " " + lib.version
+	end for
+
+	print(result)
+	
+else if (libPath != null) then
+	lib = getLib(libPath)
+	
+	// throw error
+	if (lib == null) then
+		exit("\nERROR: \n" + libPath + " is not a library\n")
+	end if
+
+	result = "\n" + lib.lib_name + " " + lib.version
+	
+	print(result)
+	print()
+else
+	exit(usageMsg)
+end if
 
