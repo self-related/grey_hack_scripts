@@ -7,13 +7,15 @@ Usage:
 	checklib libname.so     - check lib version in /lib/
 	
 	Options:
+		-a, --all           - check all libs versions in /lib/
 		-p, --path <path>   - check lib version in provided <path>
 		-v, --version       - print version
-        -help              - print this message
+        --help              - print this message
 
 	Examples:
 		checklib kernel_module.so
-		checklib -p my_folder/kernel_module.so 
+		checklib -a
+		checklib -p my_folder/kernel_module.so
 ";
 
 
