@@ -19,6 +19,14 @@ usageMsg = "
 		checklib -p my_folder/kernel_module.so
 ";
 
+shortUsageMsg = "
+<b>Usage examples</b>:
+	checklib kernel_module.so
+	checklib -a
+	checklib -p my_folder/kernel_module.so
+	checklib --help
+\n<i>checklib v" + version + "</i>"
+;
 
 
 // functions
@@ -90,13 +98,13 @@ result = ""
 
 // handle --help flag
 if (params.len == 0 or params[0] == "--help") then
-	exit(usageMsg)
+	exit(shortUsageMsg)
 end if
 
 
 // handle --version flag
 if (params[0] == "-v" or params[0] == "--version") then
-	exit("\n<b>version: " + version + "</b>\n")
+	exit(version)
 end if
 
 
