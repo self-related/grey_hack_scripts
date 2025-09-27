@@ -3,17 +3,17 @@
 
 version = "0.2"
 usageMsg = "
-Dependencies: metaxploit.so
-Usage: 
+<b>Dependencies</b>: metaxploit.so
+<b>Usage</b>: 
 	checklib libname.so     - check lib version in /lib/
 	
-	Options:
+	<b>Options</b>:
 		-a, --all           - check all libs versions in /lib/
 		-p, --path <path>   - check lib version in provided <path>
 		-v, --version       - print version
         --help              - print this message
 
-	Usage examples:
+	<b>Usage examples</b>:
 		checklib kernel_module.so
 		checklib -a
 		checklib -p my_folder/kernel_module.so
@@ -35,7 +35,7 @@ initMetaxploit = function()
 		end if
 	end for
 
-	exit("\nERROR: metaxploit.so library NOT found!\nPaths checked:\n   " + metaxploitProgramPath + "\n   " + metaxploitCurPath + "\n   " + metaxploitRootPath + "\n");
+	exit("\n<color=red>ERROR: metaxploit.so library NOT found!</color>\nPaths checked:\n   " + metaxploitProgramPath + "\n   " + metaxploitCurPath + "\n   " + metaxploitRootPath + "\n");
 end function
 
 
@@ -58,7 +58,7 @@ getAllLibs = function(path = "/lib")
 	
 	// throw error
 	if (allLibsDir == null or allLibsDir.is_folder == false) then
-		exit("no /lib folder on this machine")
+		exit("<color=red>no /lib folder on this machine</color>")
 	end if
 	
 	files = allLibsDir.get_files()
@@ -72,8 +72,9 @@ getAllLibs = function(path = "/lib")
 	
 	end for
 
+	// throw error
 	if (allLibs.len == 0) then
-		exit("No libs found")
+		exit("<color=red>No libs found</color>")
 	end if
 	
 	return allLibs
@@ -95,7 +96,7 @@ end if
 
 // handle --version flag
 if (params[0] == "-v" or params[0] == "--version") then
-	exit("\nversion: " + version + "\n")
+	exit("\n<b>version: " + version + "</b>\n")
 end if
 
 
@@ -103,8 +104,7 @@ end if
 if (params[0] == "--path" or params[0] == "-p") then
 	
 	if (params.len < 2) then 
-		print("\nPath not provided")
-		exit(usageMsg)
+		print("\n<color=red>Path not provided</color>")
 	else
 		libPath = get_abs_path(params[1])
 	end if
@@ -126,26 +126,26 @@ if params.len == 1 and (params[0] == "-a" or params[0] == "--all") then
 " 		+ lib.lib_name + " " + lib.version
 	end for
 
-	print(result)
+	print("<b>" + result + "</b>")
 	
 	// save logs
-	input = user_input("\nSave results in checklib.log? [y/N]: ")
+	input = user_input("\n<b>Save results in checklib.log? [y/N]: </b>")
 	if (input == "y" or input == "Y") then
 		computer = get_shell().host_computer()
 		file_created = computer.touch(current_path, "checklib.log")
 		
 		// print errors
 		if (file_created == "The file already exists") then
-			print("checklib.log exists and will be overwritten")
+			print("<i>checklib.log exists and will be overwritten</i>")
 		else if (file_created != 1) then
 			print(file_created)
 		end if
 	
 		log_file = computer.File("checklib.log")
 		log_file.set_content(result)
-		print("Log saved in " + log_file.path)
+		print("<b>Log saved in " + log_file.path + "</b>")
 	else
-		print("No log saved")
+		print("<b>No log saved</b>")
 	end if
 	
 else if (libPath != null) then
@@ -153,14 +153,12 @@ else if (libPath != null) then
 	
 	// throw error
 	if (lib == null) then
-		exit("\nERROR: \n" + libPath + " is not a library\n")
+		exit("\n<color=red>ERROR:</color>\n" + "<color=red>" + libPath + " is not a library</color>")
 	end if
 
 	result = "\n" + lib.lib_name + " " + lib.version
 	
-	print(result)
+	print("<b>" + result + "</b>")
 	print()
-else
-	exit(usageMsg)
 end if
 
