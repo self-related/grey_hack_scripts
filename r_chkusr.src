@@ -1,0 +1,28 @@
+// remotely check for active users and number of registered users
+
+usageMsg = "Usage: r_chkusr ip port";
+metaxploit = include_lib("/lib/metaxploit.so");
+
+if (not metaxploit) then metaxploit = include_lib("metaxploit.so");
+if (not metaxploit) then exit("No metaxploit.so found");
+if (params.len < 2) then exit(usageMsg);
+
+address = params[0];
+port = params[1].val;
+
+if (params[1] != "0" and not port) then exit(usageMsg); // port 0 is valid
+
+print(address + ":" + port);
+
+netSession = metaxploit.net_use(address, port);
+
+rootActiveStatus = "No";
+userActiveStatus = "No";
+
+if (netSession.is_root_active_user) then rootActiveStatus = "Yes";
+if (netSession.is_any_active_user) then userActiveStatus = "Yes";
+
+print("\nRoot active: " + rootActiveStatus);
+print("Other users active: " + userActiveStatus);
+print("Users registered: " + netSession.get_num_users());
+print();
