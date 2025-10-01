@@ -1,6 +1,4 @@
 
-// consts
-
 version = "0.3"
 usageMsg = "
 <b>Dependencies</b>: metaxploit.so
