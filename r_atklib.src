@@ -1,0 +1,177 @@
+
+// Remotely attack libraries
+// Dependencies: metaxploit.so
+// Usage:
+// r_atklib <ip>
+// r_atklib <ip> <port>
+
+
+
+// functions
+
+getRouterInfo = function (ip)
+	// list all remote ports (like nmap)
+	// if port not provided, prompt to choose another port
+	router = null;
+	ports = null;
+
+	if isLan then
+		router = get_router();
+		ports = router.device_ports(ip);
+	else
+		router = get_router(ip);
+		if not router then exit(connectionErrorMsg);
+		ports = router.used_ports();
+	end if
+
+	routerInfo = "PORT STATE SERVICE VERSION LAN";
+
+	for port in ports
+		
+		number = port.port_number
+		portInfo = router.port_info(port)
+		portLanIp = port.get_lan_ip();
+		state = "open";
+		
+		if port.is_closed then state = "closed";
+		
+		routerInfo = routerInfo + "\n" + number + " " + state + " " + portInfo + " " + portLanIp;
+	end for
+
+	// add kernel_router info
+	routerInfo = routerInfo + "\n" + 0 + " " + "-" + " " + "router" + " " + router.kernel_version + " " + "-";
+
+	print("\n" + format_columns(routerInfo));
+
+	// if no ports
+	if ports.len == 0 then 
+		print("<color=orange>No ports found for ip " + ip + "</color>");
+	end if
+end function
+
+
+
+// start script
+
+usageMsg = "\n<b>Usage:</b>\n r_scanlib <ip>\n r_scanlib <ip> <port>\nPort is 0 by default\n";
+connectionErrorMsg = "<color=red>Couldn't establish connection</color>";
+
+if (params.len == 0) or (params[0] == "--help") then
+	exit(usageMsg);
+end if 
+
+// include metaxploit lib
+metaxploit = include_lib("/lib/metaxploit.so");
+if not metaxploit then metaxploit = include_lib("metaxploit.so");
+if not metaxploit then 
+	exit("<color=red>metaxploit.so not found</color>");
+end if
+
+// init ip and port
+ip = params[0];
+port = 0;
+
+// handle local ip
+
+if ip == "127.0.0.1" then 
+	ip = get_shell().host_computer.local_ip;
+	isLocal = true;
+end if
+isLan = is_lan_ip(ip);
+
+// set custom port if provided and not 0
+if params.len >= 2 and 
+	params[1] != "0" and 
+	params[1].val > 0 then
+	
+	port = params[1].val
+end if
+
+getRouterInfo(ip);
+// prompt to choose port if not provided
+if params.len < 2 then
+	usrInput = user_input("\nChoose port (0 - router): ");
+
+	// handle user input
+	if usrInput != "0" and usrInput.val == 0 then
+		exit("<color=red>Wrong port: " + usrInput + "</color>");
+	else
+		port = usrInput.val;
+	end if
+end if
+
+// establishing connection
+print("<color=orange>Connecting to " + ip + ":" + port + "</color>");
+netSession = metaxploit.net_use(ip, port);
+
+
+// handle connection error on LAN
+if (not netSession) and (port == 0) and (isLan) then
+	print("\n<color=orange>Failed connecting to router on " + ip + "</color>")
+	
+	print("LAN detected");
+	localIp = get_router.local_ip;
+	
+	usrInput = user_input("Connect to router on " + localIp + "? [y/N]: ");
+	if (usrInput != "n") and 
+		(usrInput != "N") and 
+		(usrInput != "no") and 
+		(usrInput != "No") then
+		
+		ip = localIp;
+		netSession = metaxploit.net_use(ip, port);
+		print("<color=orange>Connecting to " + ip + "</color>");
+	end if
+end if
+
+
+// exit if connection error still occured
+if not netSession then 
+	exit(connectionErrorMsg);
+end if
+
+// scan lib
+lib = netSession.dump_lib();
+print("attack " + lib.lib_name);
+
+
+while true
+	usrInput = user_input("<color=orange>Which address to scan? (e - exit): </color>")
+	
+	if usrInput == "e" then exit("Exit");
+	
+	// manual input address
+	memAddress = usrInput
+	scanResults = metaxploit.scan_address(lib, memAddress)
+	
+	while true
+		print(scanResults)
+		usrInput = user_input("<color=orange>Enter a value to overflow and payload (comma-separated) (c - cancel): </color>")
+	
+		if usrInput == "c" then break;
+		
+		args = usrInput.split(",")
+		
+		addr = args[0]
+		payload = ""
+		
+		if args.len > 1 then payload = args[1];
+		
+		overflowResult = lib.overflow(memAddress, usrInput, payload)
+		
+		print(overflowResult)
+		print(typeof(overflowResult))
+		print("is shell: " + (typeof(overflowResult) == "shell"))
+		isShell = typeof(overflowResult) == "shell";
+		
+		if isShell then
+			input = user_input("Obtain shell? [y/N]: ");
+			if input == "y" or input == "Y" then
+				overflowResult.start_terminal
+			end if
+		end if
+		
+		user_input("Press enter")
+	end while
+end while
+
