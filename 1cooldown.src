@@ -1,0 +1,55 @@
+// 1 in-game min == ~4.35 real seconds
+// 1 in-game hr == ~4.35 * 60 == ~261 real seconds
+// 24 in-game hrs == ~6264 real seconds
+
+// Gets 1 param: number of in-game hours (optional)
+// Default value: 24 in-game hours == ~6264 real seconds
+
+// Usage examples:
+// 1cooldown
+// 1cooldown 1.5
+
+
+decrement = 4.35
+secondsLeft = 6264
+
+if params.len > 0 and params[0].val then
+	secondsLeft = params[0].val * decrement * 60;
+else if params.len > 0 then
+	exit("Usage: 1cooldown [optional:hours] \nExample: 1cooldown 1.5\n");
+end if
+
+
+// @class InGameTime
+InGameTime = {};
+
+// @impl update()
+InGameTime.update = function(seconds)
+	self.minutes = floor(seconds / 4.35);
+	self.hours = floor(self.minutes / 60);
+	self.minutes = self.minutes - (self.hours * 60);
+end function
+
+// @impl init()
+InGameTime.init = function(seconds)
+	self.update(seconds);
+	return self;
+end function
+
+
+inGameTime = new InGameTime.init(secondsLeft);
+
+while secondsLeft > 0
+	clear_screen();
+	
+	print("In-game time left: <color=red>" + inGameTime.hours + "h " + inGameTime.minutes + "m</color>");
+	print("Real time left: <color=red>" + floor(secondsLeft) + "s</color>");
+
+	wait(decrement);
+	
+	secondsLeft = secondsLeft - decrement;
+	inGameTime.update(secondsLeft);
+end while
+
+clear_screen();
+print("\n<color=green>==Cooldown success==</color>\n\n");
