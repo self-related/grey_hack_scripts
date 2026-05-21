@@ -12,6 +12,10 @@ host = shell.host_computer()
 scriptPath = params[0]
 scriptFile = host.File(scriptPath)
 
+if not scriptFile then
+	scriptFile = host.File("/bin/" + scriptPath) // search in /bin
+end if
+
 if not scriptFile then exit("<color=red>Script " + scriptPath + " not found</color>")
 
 scriptContent = scriptFile.get_content()
