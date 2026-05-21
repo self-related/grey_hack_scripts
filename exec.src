@@ -1,0 +1,44 @@
+// Execute shell scripts
+
+// This script takes the provided file and executes it in shell line by line
+// Comments and empty lines will be skipped. Comments start with //
+
+// Usage:
+// exec my_script.sh
+
+shell = get_shell()
+host = shell.host_computer()
+
+scriptPath = params[0]
+scriptFile = host.File(scriptPath)
+
+if not scriptFile then exit("<color=red>Script " + scriptPath + " not found</color>")
+
+scriptContent = scriptFile.get_content()
+commands = scriptContent.split("\n")
+
+for command in commands
+	command = command.trim()
+	if command == "" then continue // skip empty line
+
+	commandStartSlice = command[0:2]
+	if commandStartSlice == "//" then continue // skip comment
+	
+	commandWords = command.split(" ")	
+	programName = commandWords[0]
+	programArgs = commandWords[1:].join(" ")
+	programPath = programName
+	pathExists = host.File(programPath)
+	
+	if not pathExists then 
+		programPath = "/bin/" + programName
+		pathExists = host.File(programPath)
+	end if
+
+	if not pathExists then 
+		print("<color=red>" + programName + " and " + programPath + " not found</color>")
+	end if	
+	
+	print("<color=orange>exec: " + programPath + " " + programArgs + "</color>")
+	shell.launch(programPath, programArgs)
+end for
