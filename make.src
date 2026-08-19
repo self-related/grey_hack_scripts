@@ -1,0 +1,201 @@
+// Gray Hack Build Tool (make)
+
+
+// How it works:
+// 1. Compiles all modules that end with ".mod.src" into MAKE_DIR_PATH folder (by default: /make/module_name.mod)
+// 2. Compiles main.src into a binary in CURRENT folder
+// 3. Renames the binary into project's folder name (or provided custom name)
+// 4. Removes all created .mod files
+// 
+// Modules are compiled twice because they may import other modules that's not compiled yet
+
+
+// Installation:
+// Create /make directory with read and write permissions
+// You may change ROOT_PATH to your user's directory - it will create /home/username/make automatically (if r+w permissions)
+
+
+// Usage:
+// $ cd project_name   (main.src is required)
+// $ make
+// Optional:
+// $ make custom_binary_name
+
+ 
+
+// Project structure (folders not supported yet):
+// - main.src
+// - module1.mod.src
+// - module2.mod.src
+// - module3.mod.src
+
+
+// Importing modules in project:
+// 
+// All modules must be imported from the MAKE_DIR_PATH ("/make" by default)
+// ".src" extension is ommited for include_lib(), because they will be compiled before import
+// 
+//  Example:
+//   include_lib("/make/module1.mod")
+//   include_lib("/make/module2.mod")
+
+
+
+// TODO
+// 1. recursive compiling with get_folders and maybe recursive function call
+// 1.1 should get absolute path every time from File
+
+
+
+// --------------
+// IO functions 
+printError = function(msg)
+	print("<color=red>" + msg + "</color>")
+end function
+
+printColored = function(msg, clr="orange")
+	print("<color=" + clr + ">" + msg + "</color>")
+end function
+
+
+
+// ------------
+// init
+ROOT_PATH = "/" // must have "/" at the end: /home/user1/
+MAKE_DIR_PATH = ROOT_PATH + "make" // "/make" by default
+
+
+shell = get_shell()
+computer = shell.host_computer()
+currentDir = computer.File(current_path)
+makeModulesDir = computer.File(MAKE_DIR_PATH)
+
+
+OUTPUT_NAME = currentDir.name // executable file name
+
+// set custom OUTPUT_NAME if provided
+if (params.len > 0) then 
+	OUTPUT_NAME = params[0]
+end if
+
+print("<color=yellow>Executable: " + OUTPUT_NAME + "</color>\n")
+
+
+
+// ------------------------------------------------
+// script start
+// ------------------------------------------------
+
+
+// create new folder and set permissions if not exists, exit if can't create
+// permissions for new folder: u+rw, g+rw
+if (makeModulesDir == null) then
+	computer.create_folder(ROOT_PATH, "make")
+	makeModulesDir = computer.File(MAKE_DIR_PATH)
+	
+	if (makeModulesDir == null) then
+		printError("Couldn't create " + ROOT_PATH + "make directory")
+		exit()
+	end if
+
+	makeModulesDir.chmod("g+rw")
+end if
+
+
+// check if make_modules is a folder
+if (not makeModulesDir.is_folder) then
+	printError(makeModulesDir.path + " is not a folder")
+	exit()
+end if
+
+
+// check make_modules permissions
+if (not makeModulesDir.has_permission("r")) or (not makeModulesDir.has_permission("w")) then
+	printError("Permissions: " + makeModulesDir.permissions + " " + makeModulesDir.owner + ":" + makeModulesDir.group)
+	printError("Need r and w permissions for " + MAKE_DIR_PATH)
+	exit()
+end if
+
+
+allFiles = currentDir.get_files();
+moduleSrcFiles = []
+compiledFiles = []
+
+
+printColored("Building modules:")
+
+for file in allFiles
+	if file.name.len < 9 then continue
+	
+	//.mod.src - 8 chars
+	endsWith = file.name[-8:]
+	
+	if endsWith == ".mod.src" then
+		moduleSrcFiles.push(file)
+	end if
+end for
+
+
+// compile twice in case there are mutual dependencies
+for file in moduleSrcFiles
+	shell.build(file.path, MAKE_DIR_PATH, true)
+end for
+
+
+buildResult = ""
+
+
+for file in moduleSrcFiles
+	str = shell.build(file.path, MAKE_DIR_PATH, true)
+	
+	moduleName = file.name[:-4] // .src (4 chars) is stripped from already compiled modules
+	
+	status = "<color=red>Error</color>"
+	compiledFile = computer.File(MAKE_DIR_PATH + "/" + moduleName)
+	
+	if (compiledFile != null) then 
+		status = "<color=green>Success</color>"
+		compiledFiles.push(compiledFile)
+	end if
+
+	buildResult = buildResult + " " + moduleName + " " + status + "\n" // no += operator in minisrcipt :(((
+end for
+
+print(format_columns(buildResult) + "\n")
+
+
+// ----------------
+// build main.src
+
+mainSrcFile = computer.File(current_path + "/main.src")
+
+if mainSrcFile == null   then 
+	exit("\nNo main.src file found")
+end if
+
+printColored("Building executable:", "orange")
+shell.build(current_path + "/main.src", current_path)
+
+mainExecFile = computer.File(current_path + "/main")
+status = "<color=red>Error</color>"
+isOk = false
+
+if (mainExecFile != null) then
+	mainExecFile.move(currentDir.path, OUTPUT_NAME)
+	status = "<color=green>Success</color>"
+	isOk = true
+end if
+
+print(OUTPUT_NAME + "     " + status)
+
+if isOk then
+	print()
+	printColored("build successful", "green")
+end if
+
+
+
+// delete compiled modules
+for file in compiledFiles
+	file.delete()
+end for
